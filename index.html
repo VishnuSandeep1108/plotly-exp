@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLOTLY</title>
+    <script src="https://cdn.plot.ly/plotly-2.30.0.min.js" charset="utf-8"></script>
+</head>
+<body>
+    <div id="plot" style="width: 1000px;height: 600px;"></div>
+</body>
+
+
+<script>
+    const plot = document.getElementById("plot");
+    let iteration = 0;
+    let startX;
+
+    document.addEventListener('DOMContentLoaded', ()=>{
+        let xData = [];
+        let yData = [];
+        const queryParams = new URLSearchParams({'i':iteration});
+        fetch("/getData?"+queryParams)
+        .then(response => response.json())
+        .then(data =>{
+            xData=data[0];
+            yData=data[1];
+            iteration++;
+            Plotly.newPlot(plot, [{
+                x: xData,
+                y: yData
+            }],{margin: {t: 0}, xaxis: {fixedrange: true}, yaxis: {fixedrange: true}})
+        })
+        .catch((error)=>{
+            console.log("Error: "+error);
+        })
+    })
+
+    plot.addEventListener("mousedown",(event)=>{
+        if(event.button===0)
+        {
+            startX = event.clientX;
+            document.addEventListener("mousemove", mouseMoveHandler);
+            document.addEventListener("mouseup", mouseUpHandler);
+        }
+    })
+
+    function mouseMoveHandler(event)
+    {
+        let currentX = event.clientX;
+        let deltaX = currentX - startX;
+        console.log("DELTA: "+deltaX);
+        if(deltaX>0)
+        {
+            mouseUpHandler();
+            let xData = [];
+            let yData = [];
+            const queryParams = new URLSearchParams({"i":iteration});
+            fetch("/getData?"+queryParams)
+            .then(response => response.json())
+            .then(data =>{
+                xData=data[0];
+                yData=data[1];
+                if(xData.length>0)
+                {
+                    iteration++;
+                    Plotly.newPlot(plot, [{
+                        x: xData,
+                        y: yData
+                    }],{margin: {t: 0}, xaxis: {fixedrange: true}, yaxis: {fixedrange: true}})
+                }
+            })
+            .catch((error)=>{
+            console.log("Error: "+error);
+            })
+        }
+        else if(deltaX<0)
+        {
+            mouseUpHandler();
+            let xData = [];
+            let yData = [];
+
+            const queryParams = new URLSearchParams({"i": iteration-2});
+            fetch("/getData?"+queryParams)
+            .then(response => response.json())
+            .then(data=>{
+                xData = data[0];
+                yData = data[1];
+                if(xData.length>0)
+                {
+                    iteration--;
+                    Plotly.newPlot(plot, [{
+                        x: xData,
+                        y: yData
+                    }],{margin: {t: 0}, xaxis: {fixedrange: true}, yaxis: {fixedrange: true}})
+                }
+            })
+        }
+    }
+
+    function mouseUpHandler()
+    {
+        document.removeEventListener("mousemove",mouseMoveHandler);
+        document.removeEventListener("mouseup",mouseUpHandler);
+    }
+</script>
+</html>
